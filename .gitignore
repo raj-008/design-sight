@@ -1,0 +1,10 @@
+server/node_modules
+client/node_modules
+server/public
+server/.env
+server/.vscode
+client/.env
+client/dist
+client/package-lock.json
+server/package-lock.json
+client/public
