@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const projectController = require("../controller/projectController");
-const upload = require("../utils/uploadImage");
 
 router.get("/", projectController.read);
 router.post("/create", projectController.create);

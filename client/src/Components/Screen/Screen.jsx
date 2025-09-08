@@ -1,7 +1,6 @@
-import * as React from "react";
+import { useEffect, useState } from "react";
 import { Box, Button, Grid, ButtonGroup } from "@mui/material";
 import "../../index.css";
-import { useState } from "react";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CardMedia from "@mui/material/CardMedia";
@@ -11,6 +10,9 @@ import Fade from "@mui/material/Fade";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import Comment from "./CommentSection";
+import axios from "axios";
+import { errorToaster, successToaster } from "../../Utils/Toasters.util";
+import { useParams } from "react-router-dom";
 
 const style = {
   position: "absolute",
@@ -26,15 +28,56 @@ const style = {
 
 function Screen() {
   const [files, setFiles] = useState([]);
+
+  const { project } = useParams();
   const feedbackAvailable = 1;
+  const [screens, setScreens] = useState([]);
+  const [screen, setScreenId] = useState({});
+
+  const fetchScreens = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/screen/${project}`);
+
+      if (response.data.status) {
+        setScreens(response.data.data);
+      }
+    } catch (error) {
+      errorToaster(error.response?.data?.message || "Failed to fetch screens");
+    }
+  };
+
+  useEffect(() => {
+    fetchScreens();
+  }, []);
 
   const handleFileChange = (event) => {
     setFiles(Array.from(event.target.files));
   };
 
-  const handleUpload = (e) => {
+  const handleUpload = async (e) => {
     e.preventDefault();
-    console.log("Uploading files:", files);
+    const formData = new FormData();
+    formData.append("project_id", project);
+
+    for (let i = 0; i < files.length; i++) {
+      formData.append("screens", files[i]);
+    }
+
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/screen/upload-screen`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.data.status) {
+        successToaster(response.data.message);
+        fetchScreens();
+        setFiles([]);
+      }
+    } catch (error) {
+      errorToaster(error.response?.data?.message || "Something went wrong");
+    }
   };
 
   const [feedbackModal, setFeedbackModal] = useState(false);
@@ -46,18 +89,18 @@ function Screen() {
   };
   const closeFeedbackModal = () => setFeedbackModal(false);
 
-  const [commentkModal, setCommentModal] = useState(false);
-  const openCommentModal = () => {
+  const [commentModal, setCommentModal] = useState(false);
+
+  const openCommentModal = async (screen) => {
+    setScreenId(screen);
     setCommentModal(true);
-    for (let i = 0; i < 10000; i++) {
-      console.log(i);
-    }
   };
+
   const closeCommentModal = () => setCommentModal(false);
 
   return (
     <>
-      <form onSubmit={handleUpload}>
+      <form onSubmit={handleUpload} method="post">
         <Box className="page-heading">
           <h1>Project Title 1</h1>
         </Box>
@@ -83,66 +126,25 @@ function Screen() {
       </form>
       <Box sx={{ mt: 3 }}>
         <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-            <Card sx={{ height: 360 }}>
-              <CardMedia
-                component="img"
-                image="https://cdn.dribbble.com/userupload/27776491/file/original-cf888d1e8a8d4d8b79ff11a09e102a71.jpg?resize=1024x773&vertical=center"
-                alt="screen_image"
-                sx={{ width: "100%", height: "auto" }}
-              />
-              <CardContent sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <ButtonGroup aria-label="Basic button group">
-                  {feedbackAvailable ? <Button onClick={openFeedbackModal}>Get Feedback</Button> : <Button>Show Feedback</Button>}
-                  <Button onClick={openCommentModal}>Comments</Button>
-                </ButtonGroup>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-            <Card sx={{ height: 360 }}>
-              <CardMedia
-                component="img"
-                image="https://cdn.dribbble.com/userupload/12504910/file/original-888e1619708f0ba85a6bfd17f134dd7f.png?resize=1200x889&vertical=center"
-                alt="screen_image"
-                sx={{ width: "100%", height: "auto" }}
-              />
-              <CardContent sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <ButtonGroup aria-label="Basic button group">
-                  {feedbackAvailable ? <Button onClick={openFeedbackModal}>Get Feedback</Button> : <Button>Show Feedback</Button>}
-                  <Button onClick={openCommentModal}>Comments</Button>
-                </ButtonGroup>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-            <Card sx={{ height: 360 }}>
-              <CardMedia
-                component="img"
-                image="https://cdn.dribbble.com/userupload/26505953/file/original-a5893afe3fee652707bdc6e6c7840c72.png?resize=1200x900&vertical=center"
-                alt="screen_image"
-                sx={{ width: "100%", height: "auto" }}
-              />
-              <CardContent sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <ButtonGroup aria-label="Basic button group">
-                  {feedbackAvailable ? <Button onClick={openFeedbackModal}>Get Feedback</Button> : <Button>Show Feedback</Button>}
-                  <Button onClick={openCommentModal}>Comments</Button>
-                </ButtonGroup>
-              </CardContent>
-            </Card>
-          </Grid>
+          {screens.map((screen, index) => (
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={index}>
+              <Card sx={{ height: 360 }}>
+                <CardMedia component="img" image={screen.path} alt="screen_image" sx={{ width: "100%", height: "auto", maxHeight: "300px" }} />
+                <CardContent sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <ButtonGroup aria-label="Basic button group">
+                    {feedbackAvailable ? <Button onClick={openFeedbackModal}>Get Feedback</Button> : <Button>Show Feedback</Button>}
+                    <Button onClick={() => openCommentModal(screen)}>Comments</Button>
+                  </ButtonGroup>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
       </Box>
 
       {/* FeedBackModal */}
-      <Modal
-        aria-labelledby="transition-modal-title"
-        aria-describedby="transition-modal-description"
-        open={feedbackModal}
-        onClose={closeFeedbackModal}
-        closeAfterTransition
-        slots={{ backdrop: Backdrop }}
-        slotProps={{
+      <Modal aria-labelledby="transition-modal-title" aria-describedby="transition-modal-description" open={feedbackModal} onClose={closeFeedbackModal} closeAfterTransition slots={{ backdrop: Backdrop }} 
+      slotProps={{
           backdrop: {
             timeout: 500,
           },
@@ -165,7 +167,7 @@ function Screen() {
       <Modal
         aria-labelledby="transition-modal-title"
         aria-describedby="transition-modal-description"
-        open={commentkModal}
+        open={commentModal}
         onClose={closeCommentModal}
         closeAfterTransition
         slots={{ backdrop: Backdrop }}
@@ -175,9 +177,9 @@ function Screen() {
           },
         }}
       >
-        <Fade in={commentkModal}>
+        <Fade in={commentModal}>
           <Box sx={style}>
-            <Comment />
+            <Comment screen={screen} />
           </Box>
         </Fade>
       </Modal>

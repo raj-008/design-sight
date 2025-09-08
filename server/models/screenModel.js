@@ -7,13 +7,15 @@ const screenSchema = mongoose.Schema(
     meta_data: {
       width: { type: Number },
       height: { type: Number },
-      mime_type: { type: Number },
+      mime_type: { type: String },
       size: { type: String },
     },
   },
   {
     timestamps: true,
     versionKey: false,
+    toJSON: { getters: true },
+    toObject: { getters: true },
   }
 );
 

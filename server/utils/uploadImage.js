@@ -1,4 +1,5 @@
 const multer = require("multer");
+const CustomError = require("../utils/customError");
 
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -10,4 +11,16 @@ var storage = multer.diskStorage({
   },
 });
 
-module.exports = multer({ storage: storage });
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png/;
+  const extName = allowedTypes.test(file.originalname.toLowerCase());
+  const mimeType = allowedTypes.test(file.mimetype);
+
+  if (extName && mimeType) {
+    cb(null, true);
+  } else {
+    cb(new CustomError("Only .jpg, .jpeg and .png files are allowed!"), false);
+  }
+};
+
+module.exports = multer({ storage: storage, fileFilter: fileFilter });

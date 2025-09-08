@@ -1,24 +1,43 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Box, Typography, Button, TextField, Avatar, Stack, Divider } from "@mui/material";
+import getCurrentRole from "../../Utils/GetCurrentRole.util";
+import axios from "axios";
+import { errorToaster } from "../../Utils/Toasters.util";
+const role = getCurrentRole();
 
-function Comment({ comment, onReply }) {
+function Comment({ comment, screen, fetchComments }) {
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState("");
 
-  const handleReply = () => {
+  const handleReply = async () => {
     if (!replyText.trim()) return;
-    onReply(comment.id, replyText);
-    setReplyText("");
-    setShowReplyBox(false);
+
+    const data = {
+      message: replyText,
+      author: role,
+      screen_id: screen._id,
+      parent_id: comment._id,
+    };
+
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/comment/create`, data);
+      if (response.data.status) {
+        setReplyText("");
+        fetchComments();
+        setShowReplyBox(false);
+      }
+    } catch (error) {
+      errorToaster(error.response?.data?.message);
+    }
   };
 
   return (
-    <Box sx={{ ml: comment.parentId ? 4 : 0, mt: 2 }}>
+    <Box sx={{ ml: comment.parent_id ? 4 : 0, mt: 2 }} key={comment._id}>
       <Stack direction="row" spacing={2} alignItems="flex-start">
-        <Avatar>{comment.author[0]}</Avatar>
+        <Avatar>{role == comment.author ? "Y" : comment.author[0]}</Avatar>
         <Box>
-          <Typography variant="subtitle2">{comment.author}</Typography>
-          <Typography variant="body2">{comment.text}</Typography>
+          <Typography variant="subtitle2">{role == comment.author ? "You" : comment.author}</Typography>
+          <Typography variant="body2">{comment.message}</Typography>
 
           <Button size="small" onClick={() => setShowReplyBox(!showReplyBox)} sx={{ textTransform: "none", mt: 0.5 }}>
             Reply
@@ -35,54 +54,55 @@ function Comment({ comment, onReply }) {
         </Box>
       </Stack>
 
-      {/* Render nested replies */}
+      {/* nested replies */}
       {comment.replies?.map((reply) => (
-        <Comment key={reply.id} comment={reply} onReply={onReply} />
+        <Comment key={reply._id} comment={reply} screen={screen} fetchComments={fetchComments} />
       ))}
     </Box>
   );
 }
 
-export default function CommentThread() {
-  const [comments, setComments] = useState([
-    {
-      id: 1,
-      text: "This is the first comment",
-      author: "Alice",
-      parentId: null,
-      replies: [],
-    },
-    {
-      id: 2,
-      text: "This is another comment",
-      author: "Bob",
-      parentId: null,
-      replies: [],
-    },
-  ]);
+export default function CommentThread({ screen }) {
   const [newComment, setNewComment] = useState("");
+  const [comments, setComments] = useState([]);
 
-  const addComment = (parentId, text) => {
-    const newEntry = {
-      id: Date.now(),
-      text,
-      author: "You",
-      parentId,
-      replies: [],
-    };
-
-    if (!parentId) {
-      setComments((prev) => [...prev, newEntry]);
-    } else {
-      const addReply = (list) => list.map((item) => (item.id === parentId ? { ...item, replies: [...item.replies, newEntry] } : { ...item, replies: addReply(item.replies) }));
-      setComments((prev) => addReply(prev));
+  const fetchComments = useCallback(async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/comment/${screen._id}`);
+      if (response.data.status) {
+        setComments(response.data.data);
+      }
+    } catch (error) {
+      errorToaster(error.response?.data?.message || "Failed to fetch screens");
     }
+  }, [screen]);
+
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
+
+  const handleCommentOnchange = (e) => {
+    setNewComment(e.target.value);
   };
 
-  const handleSubmit = () => {
+  const handleCommentSubmit = async () => {
     if (!newComment.trim()) return;
-    addComment(null, newComment);
-    setNewComment("");
+
+    const data = {
+      message: newComment,
+      author: role,
+      screen_id: screen._id,
+    };
+
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/comment/create`, data);
+      if (response.data.status) {
+        setNewComment("");
+        fetchComments();
+      }
+    } catch (error) {
+      errorToaster(error.response?.data?.message);
+    }
   };
 
   return (
@@ -92,23 +112,21 @@ export default function CommentThread() {
       </Typography>
       <Divider sx={{ mb: 2 }} />
 
+      <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+        <Box component="img" src={screen.path} alt="Preview" sx={{ width: 120, height: 80, objectFit: "cover", boxShadow: 1 }} />
+      </Box>
+
       {/* Comment input */}
       <Box sx={{ mb: 3 }}>
-        <TextField fullWidth multiline rows={2} placeholder="Write a comment..." value={newComment} onChange={(e) => setNewComment(e.target.value)} />
-        <Button sx={{ mt: 1 }} variant="contained" onClick={handleSubmit}>
+        <TextField fullWidth multiline rows={2} placeholder="Write a comment..." value={newComment} onChange={(e) => handleCommentOnchange(e)} />
+        <Button sx={{ mt: 1 }} variant="contained" onClick={handleCommentSubmit}>
           Submit
         </Button>
       </Box>
 
-      <Box
-        sx={{
-          maxHeight: "300px", // 👈 fixed height
-          overflowY: "auto", // 👈 scrolling enabled
-          pr: 1, // padding for scrollbar spacing
-        }}
-      >
-        {comments.map((comment) => (
-          <Comment key={comment.id} comment={comment} onReply={addComment} />
+      <Box sx={{ maxHeight: "300px", overflowY: "auto", pr: 1 }}>
+        {comments.map((comment, index) => (
+          <Comment key={index} comment={comment} screen={screen} fetchComments={fetchComments} />
         ))}
       </Box>
     </Box>

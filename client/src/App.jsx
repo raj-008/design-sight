@@ -4,12 +4,13 @@ import Layout from "./Components/Layout/Layout.jsx";
 import Screen from "./Components/Screen/Screen.jsx";
 
 function App() {
+
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Project />} />
-          <Route path="/screen" element={<Screen />} />
+          <Route path="/screen/:project" element={<Screen />} />
         </Route>
       </Routes>
     </BrowserRouter>

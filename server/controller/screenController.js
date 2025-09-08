@@ -4,8 +4,6 @@ const { imageSizeFromFile } = require("image-size/fromFile");
 const ScreenModal = require("../models/screenModel");
 
 exports.read = asyncErrorHandler(async (req, res) => {
-  console.log(req.params.project);
-
   const projectId = req.params.project;
 
   const screens = await ScreenModal.find({ project_id: projectId });
