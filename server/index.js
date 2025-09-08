@@ -4,7 +4,7 @@ const connectMongoDB = require("./connection.js");
 const dotenv = require("dotenv");
 dotenv.config();
 const cors = require("cors");
-const routes = require("./Routes/routes");
+const routes = require("./routes/routes");
 connectMongoDB();
 const globalErrorHandler = require("./controller/errorController");
 const cookieParser = require("cookie-parser");
