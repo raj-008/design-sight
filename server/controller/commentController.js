@@ -17,8 +17,6 @@ exports.read = asyncErrorHandler(async (req, res) => {
 
   const tree = buildCommentTree(comments);
 
-  console.log(tree);
-
   return sendResponse(res, "Comments retrived successfully", tree);
 });
 
@@ -38,7 +36,7 @@ exports.update = asyncErrorHandler(async (req, res) => {
 });
 
 exports.delete = asyncErrorHandler(async (req, res) => {
-  const commentId = req.body.comment_id;
+  const commentId = req.body.comment_id;  
 
   const comment = await CommentModel.updateOne({ _id: commentId }, { $set: { message: "deleted", is_deleted: 1 } });
 

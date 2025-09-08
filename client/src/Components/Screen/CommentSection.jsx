@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Box, Typography, Button, TextField, Avatar, Stack, Divider } from "@mui/material";
+import { Box, Typography, Button, TextField, Avatar, Stack, Divider, IconButton } from "@mui/material";
 import getCurrentRole from "../../Utils/GetCurrentRole.util";
 import axios from "axios";
 import { errorToaster } from "../../Utils/Toasters.util";
 const role = getCurrentRole();
+import DeleteIcon from "@mui/icons-material/Delete";
 
 function Comment({ comment, screen, fetchComments }) {
   const [showReplyBox, setShowReplyBox] = useState(false);
@@ -31,6 +32,18 @@ function Comment({ comment, screen, fetchComments }) {
     }
   };
 
+  const handleCommentDelete = async () => {
+    try {
+      const response = await axios.patch(`${import.meta.env.VITE_API_URL}/comment/delete`, { comment_id: comment._id });
+      console.log(response.data.status);
+      if (response.data.status) {
+        fetchComments();
+      }
+    } catch (error) {
+      errorToaster(error.response?.data?.message || "Failed to delete comment");
+    }
+  };
+
   return (
     <Box sx={{ ml: comment.parent_id ? 4 : 0, mt: 2 }} key={comment._id}>
       <Stack direction="row" spacing={2} alignItems="flex-start">
@@ -38,6 +51,12 @@ function Comment({ comment, screen, fetchComments }) {
         <Box>
           <Typography variant="subtitle2">{role == comment.author ? "You" : comment.author}</Typography>
           <Typography variant="body2">{comment.message}</Typography>
+
+          {role === comment.author && (
+            <IconButton size="small">
+              <DeleteIcon fontSize="small" onClick={handleCommentDelete} />
+            </IconButton>
+          )}
 
           <Button size="small" onClick={() => setShowReplyBox(!showReplyBox)} sx={{ textTransform: "none", mt: 0.5 }}>
             Reply
